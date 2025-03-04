@@ -16,11 +16,11 @@ This is a simple FastAPI server that uses the [Sentence Transformers](https://ww
 ```bash
 python -m venv venv
 ``` 
-# On Linux/Mac
+### On Linux/Mac
 ```
 source venv/bin/activate
 ```
-# On Windows
+### On Windows
 ```bash
 venv\Scripts\activate
 ```
