@@ -1,11 +1,24 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
-import os
+import os, torch
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+model = None
 
-model = SentenceTransformer('all-mpnet-base-v2')
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global model
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = SentenceTransformer('paraphrase-MiniLM-L6-v2', device=device)
+
+    model.encode("Warming up...", show_progress_bar=False)
+
+    yield  
+
+
+app = FastAPI(lifespan=lifespan)
 
 class EmbeddingRequest(BaseModel):
     text: str
@@ -13,7 +26,7 @@ class EmbeddingRequest(BaseModel):
 @app.post("/embed")
 async def get_embedding(request: EmbeddingRequest):
     try:
-        embedding = model.encode(request.text).tolist()
+        embedding = await run_in_threadpool(lambda: model.encode(request.text, show_progress_bar=False).tolist())
         return {"embedding": embedding}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
